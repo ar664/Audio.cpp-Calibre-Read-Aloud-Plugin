@@ -1,0 +1,37 @@
+# Downloaded executables and large model packages
+/bin/
+/models/
+/samples/
+*.gguf
+*.safetensors
+*.onnx
+*.part
+
+# Builds, caches and environments
+*.zip
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# User recordings and private transcripts
+*.wav
+*.pcm
+*.mp3
+
+# Generated validation output and isolated Calibre profiles; keep source scripts
+/validation/*/
+/validation/*.json
+/validation/*.log
+/validation/*.png
+*.log
+.env
+.env.*
