@@ -37,8 +37,8 @@ Windows with CUDA is the locally validated environment; the other package names 
 ## Install and configure
 
 1. In Calibre, open **Preferences > Plugins > Load plugin from file** and select
-   `build/audio-cpp-read-aloud-1.0.0.zip`. Restart Calibre and all ebook viewers after installing or updating.
-2. Open **Preferences > Plugins**, select **audio.cpp Read Aloud**, and click
+   `audio-cpp-read-aloud-1.0.0.zip`. Restart Calibre and all ebook viewers after installing or updating.
+2. Select **Audio.cpp Read Aloud** icon from the main menu **OR** Open **Preferences > Plugins**, select **audio.cpp Read Aloud**, and click
    **Customize plugin**.
 3. Choose a **Model preset** and click **Use preset**. Select the audio.cpp
    executable, backend, and model GGUF file or complete package directory. For an
