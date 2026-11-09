@@ -1,3 +1,12 @@
+# 1.1.0 validation
+
+- Real Calibre 9.18.0: archive importer, backend registration, stock engines, settings construction, and all catalog presets passed.
+- Version guard: 9.16, 9.17, 9.18 and simulated 9.99 accepted; 9.15 and 10 rejected. Future 9.x compatibility is an assumption, not a test of unreleased versions.
+- Unit suite: 33 tests, 32 passed and 1 platform skip.
+- GPU controls: synthetic multiple-device selection, per-model persistence through draft/collect, backend filtering, CPU/external disabling, and preservation of other model assignments passed.
+- Real audio.cpp --list-devices through the asynchronous settings control found the RTX 3070 at CUDA device 0 and the CPU. No model loaded. Only one physical GPU is available here; multi-GPU inference was not tested.
+- Commands: validation/compatibility.py and validation/check_gpu_selection.py via calibre-debug with isolated CALIBRE_CONFIG_DIRECTORY and QT_QPA_PLATFORM=offscreen.
+
 # Validation ? 1.0.0
 
 Release packaging: ZIP output is build/audio-cpp-read-aloud-1.0.0.zip. Unit suite on Calibre 9.17.0: 33 tests, 32 passed, one POSIX-only skip. Real Calibre importer, registration and settings construction passed. No model inference sweep or additional manual theme/scaling acceptance checks were run for this documentation and packaging release. Earlier model evidence remains below.

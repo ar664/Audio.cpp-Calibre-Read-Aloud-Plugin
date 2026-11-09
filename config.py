@@ -3,6 +3,7 @@ import copy
 import math
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -149,12 +150,12 @@ class SettingsWidget(QWidget):
         font.setBold(True)
         heading.setFont(font)
         outer.addWidget(heading)
-        info = QLabel('1.0 · Local voices for your books\n'
+        info = QLabel('1.1 · Local voices for your books\n'
                       'Choose a model and voice below. Saved changes apply when reading is stopped.')
         info.setWordWrap(True)
         outer.addWidget(info)
         if not compatible():
-            warning = QLabel('This experimental plugin supports Calibre 9.16.x and 9.17.x only. '
+            warning = QLabel('This plugin supports Calibre 9.16 through 9.x (below 10). '
                              'Registration is disabled on this Calibre version.')
             warning.setWordWrap(True)
             outer.addWidget(warning)
@@ -233,6 +234,27 @@ class SettingsWidget(QWidget):
         self.compute = QComboBox()
         self.compute.addItems(['cpu', 'cuda', 'vulkan', 'hip', 'rocm', 'metal'])
         form.addRow('Compute backend:', self.compute)
+        self.device = QSpinBox()
+        self.device.setRange(0, 2147483647)
+        self.device.setToolTip('audio.cpp device index for this model and compute backend.')
+        self.device_choices = QComboBox()
+        self.device_choices.addItem('Detect GPUs to see device names', None)
+        self.detect_devices_button = QPushButton('Detect GPUs')
+        device_row = QWidget()
+        device_layout = QHBoxLayout(device_row)
+        device_layout.setContentsMargins(0, 0, 0, 0)
+        device_layout.addWidget(self.device)
+        device_layout.addWidget(self.device_choices, 1)
+        device_layout.addWidget(self.detect_devices_button)
+        form.addRow('GPU device:', device_row)
+        self.device_row = device_row
+        self.device_process = None
+        self.detected_devices = []
+        self.detect_devices_button.clicked.connect(self.detect_devices)
+        self.device_choices.activated.connect(self.choose_device)
+        self.device.valueChanged.connect(self.sync_device_choice)
+        self.compute.currentTextChanged.connect(self.refresh_device_choices)
+        self.exe.textChanged.connect(self.clear_device_choices)
         self.model_file = self.path_row(form, 'Model GGUF file / package:')
         model_path_row = self.model_file.parentWidget()
         self.package_button = QPushButton('Browse package directory')
@@ -252,6 +274,7 @@ class SettingsWidget(QWidget):
         self.memory_timer.timeout.connect(self.update_memory_notice)
         self.model_file.textChanged.connect(lambda: self.memory_timer.start())
         self.compute.currentTextChanged.connect(lambda: self.memory_timer.start())
+        self.device.valueChanged.connect(lambda: self.memory_timer.start())
         self.model_id = GrowingTextField()
         form.addRow('Server model ID:', self.model_id)
         self.voice = GrowingTextField()
@@ -526,7 +549,7 @@ class SettingsWidget(QWidget):
                 if smi:
                     server = json.loads(self.server_json.toPlainText())
                     selected = next((m for m in server.get('models', []) if m.get('id') == self.model_id.text()), {})
-                    device = str(selected.get('device', server.get('device', 0)))
+                    device = str(self.device.value())
                     result = subprocess.run([smi, '-i', device, '--query-gpu=memory.free',
                         '--format=csv,noheader,nounits'], capture_output=True, text=True, timeout=2,
                         creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
@@ -615,6 +638,8 @@ class SettingsWidget(QWidget):
         if self.compute.findText(compute) < 0:
             self.compute.addItem(compute)
         self.compute.setCurrentText(compute)
+        self.device.setValue(int(selected.get('device', server.get('device', 0))))
+        self.refresh_device_choices()
         self.model_file.setText(selected.get('path', ''))
         self.model_id.setText(value.get('model', 'kokoro'))
         self.voice.setText(value.get('voice', ''))
@@ -646,6 +671,67 @@ class SettingsWidget(QWidget):
             'The installed audio.cpp binary must include this model family.\n'
             'Model docs: https://github.com/0xShug0/audio.cpp/tree/main/docs/models\n\n'
             + json.dumps(spec, ensure_ascii=False, indent=2))
+
+    def clear_device_choices(self):
+        self.detected_devices = []
+        self.refresh_device_choices()
+
+    def sync_device_choice(self):
+        index = self.device_choices.findData(self.device.value())
+        self.device_choices.setCurrentIndex(max(0, index))
+
+    def choose_device(self):
+        index = self.device_choices.currentData()
+        if index is not None:
+            self.device.setValue(index)
+
+    def refresh_device_choices(self):
+        backend = self.compute.currentText().lower()
+        if backend == 'rocm':
+            backend = 'hip'
+        self.device_choices.clear()
+        self.device_choices.addItem('Manual device index', None)
+        for kind, index, name in self.detected_devices:
+            if kind == backend:
+                self.device_choices.addItem(f'{index}: {name}', index)
+        self.sync_device_choice()
+        self.device_row.setEnabled(self.mode.currentData() == 'managed' and backend != 'cpu')
+
+    def detect_devices(self):
+        if self.device_process is not None:
+            return
+        executable = self.exe.text().strip()
+        if not Path(executable).is_file():
+            QMessageBox.warning(self, 'GPU devices', 'Choose an existing audio.cpp server executable first.')
+            return
+        process = self.device_process = QProcess(self)
+        process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        process.setWorkingDirectory(self.cwd.text().strip() or str(Path(executable).resolve().parent))
+        timer = QTimer(process)
+        timer.setSingleShot(True)
+        timer.timeout.connect(process.kill)
+        self.detect_devices_button.setEnabled(False)
+        self.detect_devices_button.setText('Detecting…')
+        def finished(*args):
+            if self.device_process is not process:
+                return
+            timer.stop()
+            output = bytes(process.readAllStandardOutput()).decode('utf-8', errors='replace')
+            if self.exe.text().strip() == executable:
+                self.detected_devices = [
+                    (kind.lower(), int(index), name.strip()) for kind, index, name in
+                    re.findall(r'^([A-Za-z]+):(\d+)\s+"([^"]+)"', output, re.MULTILINE)]
+                self.refresh_device_choices()
+                if self.device_choices.count() == 1:
+                    self.device_choices.setItemText(0, 'No devices detected; enter index manually')
+            self.detect_devices_button.setEnabled(True)
+            self.detect_devices_button.setText('Detect GPUs')
+            self.device_process = None
+            process.deleteLater()
+        process.finished.connect(finished)
+        process.errorOccurred.connect(lambda error: finished() if error == QProcess.ProcessError.FailedToStart else None)
+        process.start(str(Path(executable).resolve()), ['--list-devices'])
+        timer.start(15000)
 
     def check_model_dependencies(self):
         from calibre_plugins.audio_cpp_read_aloud.dependencies import check_dependencies
@@ -747,6 +833,9 @@ class SettingsWidget(QWidget):
         self.preview_status.setText('Preview stopped.')
 
     def hideEvent(self, event):
+        if self.device_process is not None:
+            self.device_process.kill()
+            self.device_process.waitForFinished(1000)
         self.stop_voice_preview()
         super().hideEvent(event)
 
@@ -795,6 +884,7 @@ class SettingsWidget(QWidget):
             self.server_json.blockSignals(False)
 
     def _ownership_changed(self):
+        self.refresh_device_choices()
         self._refresh_inference_modes()
         managed = self.mode.currentData() == 'managed'
         family = self._selected_family()
@@ -928,6 +1018,8 @@ class SettingsWidget(QWidget):
             if 'backend' in selected:
                 selected['backend'] = self.compute.currentText()
         server['backend'] = self.compute.currentText()
+        if selected is not None and value['mode'] == 'managed':
+            selected['device'] = 0 if self.compute.currentText() == 'cpu' else self.device.value()
         value['server_settings'] = server
         value.pop('log_file', None)
         return value
@@ -972,6 +1064,7 @@ class SettingsWidget(QWidget):
                         session_options[key] = value[setting]
                 selected['session_options'] = session_options
             server['backend'] = self.compute.currentText()
+            selected['device'] = 0 if self.compute.currentText() == 'cpu' else self.device.value()
             if 'backend' in selected:
                 selected['backend'] = server['backend']
             value['server_settings'] = server

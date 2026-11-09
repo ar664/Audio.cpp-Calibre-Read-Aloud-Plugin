@@ -1,15 +1,16 @@
 # audio.cpp Read Aloud for Calibre
 
-Version 1.0.0 is a Calibre plugin that reads ebook text using a local audio.cpp
+Version 1.1.0 is a Calibre plugin that reads ebook text using a local audio.cpp
 speech server. It adds **audio.cpp Read Aloud** to Calibre's existing Read Aloud
 engine list and uses the viewer's normal play, pause, stop, voice, and highlighting
 controls.
 
 ## Compatibility
 
-- Supported Calibre versions: **9.16.x and 9.17.x**. The plugin uses internal
-  Calibre TTS interfaces and intentionally does not register on other versions.
-- The settings widget and plugin ZIP were validated with Calibre 9.17.0.
+- Supported Calibre versions: **9.16 through 9.x (below 10)**. Later 9.x versions are assumed
+  compatible; the plugin also checks for the required internal TTS interfaces.
+  Calibre 10 and versions below 9.16 are not enabled.
+- The settings widget and plugin ZIP were validated with Calibre 9.18.0.
 - Model support depends on the audio.cpp executable, model files, backend, and
   model-specific companion assets. The plugin does not install or update them.
 
@@ -37,7 +38,7 @@ Windows with CUDA is the locally validated environment; the other package names 
 ## Install and configure
 
 1. In Calibre, open **Preferences > Plugins > Load plugin from file** and select
-   `audio-cpp-read-aloud-1.0.0.zip`. Restart Calibre and all ebook viewers after installing or updating.
+   `build/audio-cpp-read-aloud-1.1.0.zip`. Restart Calibre and all ebook viewers after installing or updating.
 2. Select **Audio.cpp Read Aloud** icon from the main menu **OR** Open **Preferences > Plugins**, select **audio.cpp Read Aloud**, and click
    **Customize plugin**.
 3. Choose a **Model preset** and click **Use preset**. Select the audio.cpp
@@ -131,3 +132,14 @@ Under **Voice conditioning**, choose a reference WAV and transcript, then **Save
 Use **Check model dependencies** to inspect the selected package against installation manifests and adjacent audio.cpp model specifications, configured companion paths, MioCodec and reference files. Missing metadata is reported as unverified. This is a file check, not an inference test.
 
 **Load transcript from text file?** imports UTF-8 (with or without BOM) or BOM-marked UTF-16 into the editable transcript field. Save settings or a named reference voice to retain the imported text; changes to the source file are not loaded automatically.
+
+## Choose a GPU
+
+For a managed local server, choose the compute backend in **Server and model**,
+then click **Detect GPUs** beside **GPU device**. Select a named device from the
+list, or enter its audio.cpp device index manually. Detection uses the selected
+server executable and does not load a model. Device numbers are specific to the
+backend; detect again after changing the executable or hardware. The choice is
+saved with the model profile and applies to Read Aloud and voice preview. Each
+model runs on one GPU; this does not split a model across GPUs. CPU mode does not
+use the GPU selector. For an external server, configure its device on that server.

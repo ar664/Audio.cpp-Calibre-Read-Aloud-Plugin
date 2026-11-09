@@ -7,7 +7,7 @@ Do not edit Calibre's installed source files or kill the user's Calibre/viewer p
 ## Architecture
 
 - `__init__.py`: plugin metadata, version and deferred registration.
-- `registration.py`: Calibre 9.16/9.17 compatibility guards and backend registration.
+- `registration.py`: Calibre 9.16 <= version < 10 compatibility guards and backend registration.
 - `backend.py`: Qt networking, sentence queue, highlighting and audio playback.
 - `core.py`: speech request construction, WAV/SSE decoding, managed server ownership,
   and Mio package resolution. Preserve server mutex and Windows kill-on-close job behavior.
@@ -19,7 +19,7 @@ Do not edit Calibre's installed source files or kill the user's Calibre/viewer p
 
 ## Local environment
 
-Calibre executables: `C:\Program Files\Calibre2`. Tested Calibre version: 9.17.0.
+Calibre executables: `C:\Program Files\Calibre2`. Tested Calibre version: 9.18.0.
 audio.cpp executables and specs: `bin/`, last checked version 0.9.3 (41c1f8ff).
 Models: `models/`; use the smallest working package for inference tests.
 GPU: RTX 3070, 8 GiB VRAM. Run GPU model tests sequentially and close owned servers.

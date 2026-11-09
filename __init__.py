@@ -6,7 +6,7 @@ class AudioCppReadAloud(InterfaceActionBase):
     name = 'audio.cpp Read Aloud'
     description = 'Local Read Aloud with audio.cpp GGUF speech models'
     author = 'OpenAI'
-    version = (1, 0, 0)
+    version = (1, 1, 0)
     minimum_calibre_version = (9, 16, 0)
     supported_platforms = ['windows', 'linux', 'osx']
     actual_plugin = 'calibre_plugins.audio_cpp_read_aloud.action:AudioCppAction'

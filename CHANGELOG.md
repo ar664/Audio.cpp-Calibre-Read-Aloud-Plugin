@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0
+
+- Allow Calibre 9.18 and later 9.x versions, retaining 9.16 support and internal TTS interface checks. Calibre 10 remains excluded.
+- Add per-model GPU selection, asynchronous audio.cpp device detection, and manual device indices. Preview and Read Aloud use the saved device.
+- Keep release archives in build/.
+
+
 ## 1.0.0
 
 Marked the plugin as the 1.0 release. Build ZIPs now go into build/ and derive their version from plugin metadata. Removed the model-specific Ming3 section from README without changing model support. Added audio.cpp binary selection and runtime instructions based on official v0.9.3 assets.

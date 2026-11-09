@@ -1,8 +1,8 @@
-# 1.0.0 release
+# 1.1.0 release
 
-1.0.0 is the release version. This does not mean every catalog model has been validated.
-Build output: `build/audio-cpp-read-aloud-1.0.0.zip`; checksum: adjacent `.zip.sha256`.
-Calibre support remains 9.16.x and 9.17.x. Test with the bundled audio.cpp 0.9.3
+1.1.0 is the release version. This does not mean every catalog model has been validated.
+Build output: `build/audio-cpp-read-aloud-1.1.0.zip`; checksum: adjacent `.zip.sha256`.
+Calibre support covers 9.16 through 9.x, assuming later 9.x compatibility. Test with the bundled audio.cpp 0.9.3
 and the smallest working model packages. Preserve historical evidence.
 
 ## Release validation checklist

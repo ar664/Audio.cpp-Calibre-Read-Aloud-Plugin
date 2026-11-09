@@ -33,10 +33,10 @@ plugin.initialize()
 from calibre_plugins.audio_cpp_read_aloud import registration
 from calibre.gui2.tts import types
 
-assert numeric_version[:2] in ((9, 16), (9, 17)), numeric_version
+assert (9, 16) <= numeric_version[:2] < (10, 0), numeric_version
 for version, expected in (((9, 16, 0), True), ((9, 16, 100), True),
                           ((9, 17, 0), True), ((9, 17, 100), True),
-                          ((9, 15, 0), False), ((9, 18, 0), False),
+                          ((9, 15, 0), False), ((9, 18, 0), True), ((9, 99, 100), True),
                           ((10, 0, 0), False)):
     with patch('calibre.constants.numeric_version', version):
         assert registration.compatible() == expected, version
@@ -71,6 +71,43 @@ assert CLONED_VOICE not in {v.name for v in backend.available_voices['']}
 for family in CATALOG:
     widget._populate(preset(family))
     widget._ownership_changed()
+# Synthetic multiple GPUs: selection is backend-specific and persists on the
+# active model without changing other models or the server's default device.
+cfg = preset('kokoro')
+cfg['server_settings']['backend'] = 'cuda'
+cfg['server_settings']['device'] = 3
+model = cfg['server_settings']['models'][0]
+model.pop('backend', None)
+model['device'] = 1
+cfg['server_settings']['models'].append(dict(model, id='other', device=7))
+widget._populate(cfg)
+widget.detected_devices = [('cuda', 0, 'GPU A'), ('cuda', 1, 'GPU B'), ('vulkan', 0, 'Vulkan GPU')]
+widget.refresh_device_choices()
+assert widget.device.value() == 1
+assert widget.device_choices.currentText() == '1: GPU B'
+widget.device_choices.setCurrentIndex(widget.device_choices.findData(0))
+widget.choose_device()
+saved = widget._draft()
+assert saved['server_settings']['models'][0]['device'] == 0
+assert saved['server_settings']['models'][1]['device'] == 7
+assert saved['server_settings']['device'] == 3
+widget._populate(saved)
+assert widget.device.value() == 0
+widget.compute.setCurrentText('vulkan')
+assert widget.device_choices.count() == 2
+widget.compute.setCurrentText('cpu')
+assert not widget.device_row.isEnabled()
+widget.mode.setCurrentIndex(1)
+widget._ownership_changed()
+assert not widget.device_row.isEnabled()
+# collect() also rebuilds server JSON: verify that path retains the choice.
+cfg['executable'] = __file__
+cfg['server_settings']['models'][0]['path'] = __file__
+cfg['reference_audio'] = ''
+cfg['breeze_voice_mode'] = 'design'
+widget._populate(cfg)
+widget.device.setValue(2)
+assert widget.collect()['server_settings']['models'][0]['device'] == 2
 widget.close()
 backend.shutdown()
 backend.config_timer.stop()

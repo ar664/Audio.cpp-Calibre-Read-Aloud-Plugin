@@ -14,7 +14,9 @@ VIEWER = 'calibre.gui2.viewer.ui'
 
 def compatible():
     from calibre.constants import numeric_version
-    return tuple(numeric_version[:2]) in ((9, 16), (9, 17))
+    # Preserve 9.16 support and assume later 9.x releases remain compatible.
+    # register() also checks the internal TTS interface before installing hooks.
+    return (9, 16) <= tuple(numeric_version[:2]) < (10, 0)
 
 
 def enabled():
